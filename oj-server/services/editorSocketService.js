@@ -1,3 +1,8 @@
+import { redisClient } from '../modules/redisClient';
+
+const SESSION_PATH = '/temp_sessions/';
+const TIMEOUT_IN_SECONDS = 3600;
+
 export const editorSocketService = io => {
 	// collaboration sessions
 	// record all the participants in each session
@@ -14,8 +19,15 @@ export const editorSocketService = io => {
 		// add current socket id to collaboration session participants
 		if (!(sessionId in collaborations)) {
 			collaborations[sessionId] = {
-				participants: []
+				participants: [],
+				cachedInstructions: []
 			};
+			redisClient.get(SESSION_PATH + sessionId, data => {
+				if (data) {
+					console.log('session terminated previously, pulling back from redis');
+					collaborations[sessionId]['cachedInstructions'] = JSON.parse(data);
+				}
+			});
 		}
 
 		// Add the newly joined user to the participants
@@ -33,10 +45,10 @@ export const editorSocketService = io => {
 		// delta is the change info
 		// it records the row and cloumn of the changes
 		socket.on('change', delta => {
-			// log, easy for debuging
-			console.log('change ' + socketIdToSessionId[socket.id] + ': ' + delta);
 			// get session id based on socket.id
 			let sessionId = socketIdToSessionId[socket.id];
+			collaborations[sessionId]['cachedInstructions'].push(['change', delta, Date.now()]);
+
 			if (sessionId in collaborations) {
 				// get all participants in this session
 				let participants = collaborations[sessionId]['participants'];
@@ -51,14 +63,29 @@ export const editorSocketService = io => {
 			}
 		});
 
+		socket.on('restoreBuffer', () => {
+			collaborations[sessionId]['cachedInstructions'].forEach(instruction => {
+				socket.emit(instruction[0], instruction[1]);
+			});
+		});
+
 		// When a user disconnected, remove it from the participants and broadcast to all online users
 		socket.on('disconnect', reason => {
 			collaborations[sessionId]['participants'] = collaborations[sessionId]['participants'].filter(
 				participant => participant !== socket.id
 			);
-			collaborations[sessionId]['participants'].forEach(participant => {
-				io.to(participant).emit('participantDrop', socket.id);
-			});
+			if (collaborations[sessionId]['participants'].length == 0) {
+				console.log('last participant is leaving, commit to redis');
+				const key = SESSION_PATH + sessionId;
+				redisClient.set(key, JSON.stringify(collaborations[sessionId]['cachedInstructions']), redisClient.redisPrint);
+				// set expire time
+				redisClient.expire(key, TIMEOUT_IN_SECONDS);
+				delete collaborations[sessionId];
+			} else {
+				collaborations[sessionId]['participants'].forEach(participant => {
+					io.to(participant).emit('participantDrop', socket.id);
+				});
+			}
 		});
 	});
 };

@@ -51,6 +51,10 @@ export class CollaborationService {
 		});
 	}
 
+	restoreBuffer(): void {
+		this.collaborationSocket.emit('restoreBuffer');
+	}
+
 	// emit event to make changes and inform server and other collaborators
 	change(delta: string): void {
 		// emit "change" event
