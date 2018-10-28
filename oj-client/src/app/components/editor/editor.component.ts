@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Params } from '@angular/router';
 import { CollaborationService } from '../../services/collaboration.service';
+import { DataService } from '../../services/data.service';
 declare var ace: any; // we must declare ace, since the ace is not written by typescript, use type any.
 
 @Component({
@@ -18,16 +19,35 @@ export class EditorComponent implements OnInit {
 }`,
 		Python: `class Solution:
 	def example():
-		# write your Python code here`
+		# write your Python code here
+
+
+if __name__ == '__main__':
+  Solution.example()`,
+
+		'C++': `#include <iostream>
+using namespace std;
+
+int main() 
+{
+	// Type your C++ code here
+  cout << "Hello, World!";
+  return 0;
+}`
 	};
-	languages: string[] = ['Java', 'Python'];
+	languages: string[] = ['Java', 'Python', 'C++'];
 	language: string = 'Java'; //default language
 	sessionId: string;
 	participants = {
 		onlineParticipants: []
 	};
+	result: string = '';
 
-	constructor(private collaboration: CollaborationService, private route: ActivatedRoute) {}
+	constructor(
+		private collaboration: CollaborationService,
+		private route: ActivatedRoute,
+		private dataService: DataService
+	) {}
 
 	ngOnInit() {
 		// use problem id as session id
@@ -73,6 +93,12 @@ export class EditorComponent implements OnInit {
 
 	submit(): void {
 		let usercode = this.editor.getValue();
-		console.log(usercode);
+		const data = {
+			code: usercode,
+			lang: this.language.toLowerCase()
+		};
+
+		// buildAndRun return a Promise
+		this.dataService.buildAndRun(data).then(res => (this.result = res), err => console.log(err));
 	}
 }

@@ -53,6 +53,24 @@ export class DataService {
 			.catch(this.handleError);
 	}
 
+	buildAndRun(data): Promise<any> {
+		// define the Content-Type in http request header
+		// Content-Type declears the body type when you issue a POST request;
+		const options = {
+			headers: new HttpHeaders({
+				'Content-Type': 'application/json'
+			})
+		};
+		return this.httpClient
+			.post('api/v1/build_and_run', data, options)
+			.toPromise() // convert observable to promise
+			.then(res => {
+				console.log(res);
+				return res;
+			})
+			.catch(this.handleError);
+	}
+
 	private handleError(error: any): Promise<any> {
 		return Promise.reject(error.body || error);
 	}
