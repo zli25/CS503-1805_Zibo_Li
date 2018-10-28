@@ -7,8 +7,8 @@ const restClient = new nodeRestClient();
 const jsonParser = bodyParser.json();
 
 // executor
-// const EXECUTOR_SERVER_URL = 'http://executor/build_and_run';
-const EXECUTOR_SERVER_URL = 'http://localhost:5000/build_and_run';
+const EXECUTOR_SERVER_URL = 'http://executor/build_and_run';
+// const EXECUTOR_SERVER_URL = 'http://localhost:5000/build_and_run';
 
 restClient.registerMethod('build_and_run', EXECUTOR_SERVER_URL, 'POST');
 

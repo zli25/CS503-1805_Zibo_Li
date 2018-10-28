@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import { buildAndRun } from './executorUtil';
 
 const app = express();
-const port = 5000;
+const port = process.argv[2] || 5000;
 
 app.post('/build_and_run', bodyParser.json(), (req, res) => {
 	console.log(req.body);
